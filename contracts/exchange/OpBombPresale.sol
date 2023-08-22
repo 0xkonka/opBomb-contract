@@ -65,7 +65,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
     address public treasury;
     uint256 public ethFee = 0;
     uint256 public tokenFee = 0;
-    uint256 public emergencyFee = 200;
+    uint256 public emergencyFee = 500;
 
     address public liquidityTimeLock;
 
@@ -87,7 +87,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
 
     function initialize(
         PresaleConfig memory _config,
-        address _OpBombRouter, 
+        address _OpBombRouter,
         address _owner,
         address _treasury,
         uint256 _emergencyFee,
@@ -269,21 +269,25 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
             100 /
             10 ** 18;
         presaleToken.approve(address(OpBombRouter), amountTokenDesired);
-        tokenReminder =
-            presaleToken.balanceOf(address(this)) -
-            amountTokenDesired -
-            totalSold;
+
+        unchecked {
+            tokenReminder =
+                presaleToken.balanceOf(address(this)) -
+                amountTokenDesired -
+                totalSold;
+            require(tokenReminder >= 0, "Token Reminder Exceeds");
+        }
 
         uint256 amountBNB = (totalPaid * presaleConfig.liquidity_percent) / 100;
         (amountA, amountB, liquidity) = OpBombRouter.addLiquidityETH{
-            value: amountBNB
+            value: amountBNB / 1000
         }(
             address(presaleToken),
             amountTokenDesired,
             0,
             0,
             address(this),
-            2 ** 255
+            type(uint256).max
         );
 
         emit LiquidityAdded(pair, liquidity);

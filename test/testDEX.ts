@@ -2,9 +2,22 @@ import { expect } from 'chai'
 import { deployments, ethers, upgrades } from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber } from 'ethers'
-import { keccak256, toBuffer, ecsign, bufferToHex } from 'ethereumjs-util'
 import {
-  OpBombFactory, OpBombRouter, MockERC20, WBNB, OpBombPair, IOpBombPair
+  keccak256,
+  toBuffer,
+  ecsign,
+  bufferToHex,
+  MAX_INTEGER,
+} from 'ethereumjs-util'
+import {
+  OpBombFactory,
+  OpBombRouter,
+  MockERC20,
+  WBNB,
+  OpBombPair,
+  OpBombPresale,
+  BombToken,
+  SyrupBar,
 } from '../typechain'
 import { execPath } from 'process'
 
@@ -12,6 +25,7 @@ describe('test DEX', function () {
   // Account
   let owner: SignerWithAddress
   let feeManager: SignerWithAddress
+  let controller: SignerWithAddress
   let alice: SignerWithAddress
   let bob: SignerWithAddress
 
@@ -22,6 +36,9 @@ describe('test DEX', function () {
   let token2: MockERC20
   let token3: MockERC20
   let WBNB: WBNB
+  let OpBombPresale: OpBombPresale
+  let BombToken: BombToken
+  let SyrupBar: SyrupBar
 
   before(async () => {
     const signers = await ethers.getSigners()
@@ -29,40 +46,46 @@ describe('test DEX', function () {
     feeManager = signers[1]
     alice = signers[2]
     bob = signers[3]
+    controller = signers[4]
 
     // Deploy tokens
-    let receipt = await deployments.deploy('MockERC20', {
+    let receipt = await deployments.deploy('WBNB', {
       from: owner.address,
-      args: [
-        "Token1", "Token1", "1000000"
-      ],
+      log: true,
+    })
+    WBNB = await ethers.getContractAt('WBNB', receipt.address)
+    receipt = await deployments.deploy('MockERC20', {
+      from: owner.address,
+      args: ['Token1', 'Token1', ethers.utils.parseEther('1000000')],
       log: true,
     })
     token1 = await ethers.getContractAt('MockERC20', receipt.address)
     receipt = await deployments.deploy('MockERC20', {
       from: owner.address,
-      args: [
-        "Token2", "Token2", "1000000"
-      ],
+      args: ['Token2', 'Token2', ethers.utils.parseEther('1000000')],
       log: true,
     })
     token2 = await ethers.getContractAt('MockERC20', receipt.address)
     receipt = await deployments.deploy('MockERC20', {
       from: owner.address,
-      args: [
-        "Token3", "Token3", "1000000"
-      ],
+      args: ['Token3', 'Token3', ethers.utils.parseEther('1000000')],
       log: true,
     })
     token3 = await ethers.getContractAt('MockERC20', receipt.address)
-    receipt = await deployments.deploy('WBNB', {
+    // Deploy Bomb Token
+    receipt = await deployments.deploy('BombToken', {
       from: owner.address,
       log: true,
     })
-    WBNB = await ethers.getContractAt('WBNB', receipt.address)
-
+    BombToken = await ethers.getContractAt('BombToken', receipt.address)
+    // Deploy Bomb Token
+    receipt = await deployments.deploy('SyrupBar', {
+      from: owner.address,
+      args: [BombToken.address],
+      log: true,
+    })
+    SyrupBar = await ethers.getContractAt('SyrupBar', receipt.address)
     // Deploy factory
-
     receipt = await deployments.deploy('OpBombFactory', {
       from: owner.address,
       args: [feeManager.address],
@@ -76,64 +99,236 @@ describe('test DEX', function () {
       log: true,
     })
     OpBombRouter = await ethers.getContractAt('OpBombRouter', receipt.address)
-
-
+    // Deploy Presale
+    receipt = await deployments.deploy('OpBombPresale', {
+      from: owner.address,
+      log: true,
+    })
+    OpBombPresale = await ethers.getContractAt('OpBombPresale', receipt.address)
   })
   describe('Deploy contract', async () => {
-    it('should be deployed', async () => { })
+    it('should be deployed', async () => {})
   })
-  describe('Mint token', async () => {
-    it('Mint token', async function () {
-      // Mint Grape token
-      // await grape.mint(
-      //   owner.address,
-      //   BigNumber.from(1000000).mul(BigNumber.from(10).pow(18)),
-      // )
-      await token1.connect(owner).transfer(bob.address, "2000");
-      await token2.connect(owner).transfer(bob.address, "2000");
-      await token3.connect(owner).transfer(bob.address, "2000");
+  describe('Dex', async () => {
+    it('Initialize', async function () {
+      await BombToken.mint(owner.address, ethers.utils.parseEther('10000'))
+      await BombToken.mint(alice.address, ethers.utils.parseEther('10000'))
+      await BombToken.mint(bob.address, ethers.utils.parseEther('10000'))
+      await BombToken.mint(
+        OpBombPresale.address,
+        ethers.utils.parseEther('10000'),
+      )
+      await OpBombFactory.connect(feeManager).setFeeTo(feeManager.address)
+    })
+    it('Transfer token', async function () {
+      await token1
+        .connect(owner)
+        .transfer(bob.address, ethers.utils.parseEther('20000'))
+      await token2
+        .connect(owner)
+        .transfer(bob.address, ethers.utils.parseEther('20000'))
+      await token3
+        .connect(owner)
+        .transfer(bob.address, ethers.utils.parseEther('20000'))
 
-      await token1.connect(owner).transfer(alice.address, "2000");
-      await token2.connect(owner).transfer(alice.address, "2000");
-      await token3.connect(owner).transfer(alice.address, "2000");
+      await token1
+        .connect(owner)
+        .transfer(alice.address, ethers.utils.parseEther('20000'))
+      await token2
+        .connect(owner)
+        .transfer(alice.address, ethers.utils.parseEther('20000'))
+      await token3
+        .connect(owner)
+        .transfer(alice.address, ethers.utils.parseEther('20000'))
 
+      await WBNB.connect(owner).deposit({
+        value: ethers.utils.parseEther('100'),
+      })
+      await WBNB.connect(alice).deposit({
+        value: ethers.utils.parseEther('100'),
+      })
+      await WBNB.connect(bob).deposit({ value: ethers.utils.parseEther('100') })
     })
     it('Add Liquidity', async function () {
-      
-      await OpBombFactory.createPair(token1.address, token2.address);
-      const deadline = Date.now() + 20;
+      // BNB/token1 1: 60
+      await token1
+        .connect(bob)
+        .approve(OpBombRouter.address, ethers.utils.parseEther('3000'))
+      await OpBombRouter.connect(bob).addLiquidityETH(
+        token1.address,
+        ethers.utils.parseEther('3000'),
+        0,
+        0,
+        bob.address,
+        ethers.constants.MaxUint256,
+        { value: ethers.utils.parseEther('50') },
+      )
+      // WBNB/token1 1: 60
+      await WBNB.connect(bob).approve(
+        OpBombRouter.address,
+        ethers.utils.parseEther('50'),
+      )
+      await token1
+        .connect(bob)
+        .approve(OpBombRouter.address, ethers.utils.parseEther('3000'))
+      await OpBombRouter.connect(bob).addLiquidity(
+        WBNB.address,
+        token1.address,
+        ethers.utils.parseEther('50'),
+        ethers.utils.parseEther('3000'),
+        0,
+        0,
+        bob.address,
+        ethers.constants.MaxUint256,
+      )
 
-      await token1.connect(alice).approve(OpBombRouter.address, "100");
-      await token2.connect(alice).approve(OpBombRouter.address, "1000");
-
-      await OpBombRouter.connect(alice).addLiquidity(token1.address, token2.address, "100", "1000", 0, 0, alice.address, deadline);
-
-      await token1.connect(bob).approve(OpBombRouter.address, "100");
-      await token3.connect(bob).approve(OpBombRouter.address, "2000");
-
-      await OpBombRouter.connect(bob).addLiquidity(token1.address, token3.address, "100", "2000", 0, 0, bob.address, deadline);
+      // token1/token2 10:1000
+      await token1
+        .connect(alice)
+        .approve(OpBombRouter.address, ethers.utils.parseEther('1000'))
+      await token2
+        .connect(alice)
+        .approve(OpBombRouter.address, ethers.utils.parseEther('10000'))
+      await OpBombRouter.connect(alice).addLiquidity(
+        token1.address,
+        token2.address,
+        ethers.utils.parseEther('1000'),
+        ethers.utils.parseEther('10000'),
+        0,
+        0,
+        alice.address,
+        ethers.constants.MaxUint256,
+      )
 
     })
-    it('Swap', async function () {
-      const deadline = Date.now() + 20;
-      let path = [token1.address, token2.address];
+    it('Swap ETH to Token1', async function () {
+      let path = [WBNB.address, token1.address]
 
-      let pair = await OpBombFactory.getPair(token1.address, token2.address);
+      // Swap token1 10 to token2
+      const amounts = await OpBombRouter.getAmountsOut(
+        ethers.utils.parseEther('1'),
+        path,
+      )
 
-      console.log('pair.address', pair)
-      let OpBombPair = await ethers.getContractAt('OpBombPair', pair)
-      const poolTotalSupply = await OpBombPair.totalSupply();
-      const reserve = await OpBombPair.getReserves()
-      console.log('poolTotalSupply',  +poolTotalSupply)
-      console.log('reserve', reserve)
+      await OpBombRouter.connect(alice).swapExactETHForTokens(
+        amounts[1],
+        path,
+        alice.address,
+        ethers.constants.MaxUint256,
+        {value: ethers.utils.parseEther("1")}
+      )
 
-      await token1.connect(alice).approve(OpBombRouter.address, BigNumber.from(1000));
-      await token2.connect(alice).approve(OpBombRouter.address, BigNumber.from(1000));
-      const amounts = await OpBombRouter.getAmountOut("10", reserve._reserve0, reserve._reserve1, 500);
-      console.log('amounts', amounts)
-      await OpBombRouter.connect(alice).swapExactTokensForTokens(BigNumber.from(10), BigNumber.from(86) , path, alice.address, deadline);
-      // const ownerGrapeBalance = await grape.balanceOf(owner.address)
-      // expect(await grape.totalSupply()).to.equal(ownerGrapeBalance)
+    })
+    it('Swap Token1 to Token2', async function () {
+      let path = [token1.address, token2.address]
+
+      // let reserve = await OpBombPair.getReserves()
+      // console.log('reserve1', reserve)
+
+      // Swap token1 10 to token2
+      const amounts = await OpBombRouter.getAmountsOut(
+        ethers.utils.parseEther('100'),
+        path,
+      )
+
+      await token1
+        .connect(alice)
+        .approve(OpBombRouter.address, ethers.utils.parseEther('100'))
+      await OpBombRouter.connect(alice).swapExactTokensForTokens(
+        ethers.utils.parseEther('100'),
+        amounts[1],
+        path,
+        alice.address,
+        ethers.constants.MaxUint256,
+      )
+
+      // reserve = await OpBombPair.getReserves()
+      // console.log('reserve2', reserve)
+    })
+    it('Swap ETH to Token1', async function () {
+      let path = [WBNB.address, token1.address]
+
+      // Swap WBNB 10 to token1
+      const amounts = await OpBombRouter.getAmountsOut(
+        ethers.utils.parseEther('1'),
+        path,
+      )
+      await WBNB.connect(bob).approve(
+        OpBombRouter.address,
+        ethers.utils.parseEther('10'),
+      )
+      await OpBombRouter.connect(bob).swapExactTokensForTokens(
+        ethers.utils.parseEther('1'),
+        amounts[1],
+        path,
+        bob.address,
+        ethers.constants.MaxUint256,
+      )
+    })
+    it('Presale', async function () {
+      let PresaleConfig = {
+        token: BombToken.address, // OpBomb token address
+        price: ethers.utils.parseEther('0.015'), //  0.015
+        listing_price: ethers.utils.parseEther('0.01875'), // 0.01875
+        liquidity_percent: ethers.utils.parseEther('50'), // 50%
+        hardcap: ethers.utils.parseEther('10'), // 100 BNB
+        softcap: ethers.utils.parseEther('8'), // 150 BNB
+        min_contribution: ethers.utils.parseEther('1'), // 1 BNB
+        max_contribution: ethers.utils.parseEther('5'), // 5 BNB
+        startTime: Math.floor(Date.now() / 1000) + 20, // ..
+        endTime: Math.floor(Date.now() / 1000) + 20 + 3 * 24 * 60 * 60, // ..
+        liquidity_lockup_time: 3 * 24 * 60 * 60, // ex: 1 mont
+      }
+
+      await OpBombPresale.initialize(
+        PresaleConfig,
+        OpBombRouter.address,
+        owner.address,
+        feeManager.address,
+        500,
+        0,
+        0,
+      )
+
+      // Contribute 1 BNB to Presale
+      await OpBombPresale.connect(alice).contribute({
+        value: ethers.utils.parseEther('1'),
+      })
+      await OpBombPresale.connect(alice).contribute({
+        value: ethers.utils.parseEther('4'),
+      })
+      // await expect(
+      //   OpBombPresale.connect(alice).contribute({
+      //     value: ethers.utils.parseEther('4'),
+      //   }),
+      // ).to.be.reverted
+
+      await OpBombPresale.connect(bob).contribute({
+        value: ethers.utils.parseEther('5'),
+      })
+      // await expect(
+      //   OpBombPresale.connect(owner).contribute({
+      //     value: ethers.utils.parseEther('5'),
+      //   }),
+      // ).to.be.reverted
+
+      // await OpBombPresale.connect(bob).emergencyWithdraw()
+      // await OpBombPresale.connect(bob).contribute({
+      //   value: ethers.utils.parseEther('5'),
+      // })
+
+      const totalHold = await OpBombPresale.totalSold()
+      const totalRaised = await OpBombPresale.totalRaised()
+      console.log('totalHold  ', totalHold)
+      console.log('totalRaised', totalRaised)
+
+      await OpBombPresale.closePresale()
+      // await OpBombPresale.connect(bob).withdraw();
+      // await OpBombPresale.connect(alice).withdraw();
+
+      // const aliceBal = BombToken.balanceOf(alice.address)
+      // console.log('aliceBal', aliceBal)
+
     })
   })
 })
