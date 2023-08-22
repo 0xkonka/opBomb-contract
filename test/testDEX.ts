@@ -199,7 +199,6 @@ describe('test DEX', function () {
         alice.address,
         ethers.constants.MaxUint256,
       )
-
     })
     it('Swap ETH to Token1', async function () {
       let path = [WETH.address, token1.address]
@@ -215,9 +214,8 @@ describe('test DEX', function () {
         path,
         alice.address,
         ethers.constants.MaxUint256,
-        {value: ethers.utils.parseEther("1")}
+        { value: ethers.utils.parseEther('1') },
       )
-
     })
     it('Swap Token1 to Token2', async function () {
       let path = [token1.address, token2.address]
@@ -268,13 +266,13 @@ describe('test DEX', function () {
     it('Presale', async function () {
       let PresaleConfig = {
         token: BombToken.address, // OpBomb token address
-        price: ethers.utils.parseEther('0.015'), //  0.015
-        listing_price: ethers.utils.parseEther('0.01875'), // 0.01875
+        price: ethers.utils.parseEther('333.33'), //  0.015
+        listing_price: ethers.utils.parseEther('266.66'), // 0.01875
         liquidity_percent: 50, // 50%
-        hardcap: ethers.utils.parseEther('10'), // 100 ETH
-        softcap: ethers.utils.parseEther('8'), // 150 ETH
-        min_contribution: ethers.utils.parseEther('1'), // 1 ETH
-        max_contribution: ethers.utils.parseEther('5'), // 5 ETH
+        hardcap: ethers.utils.parseEther('2'), // 100 ETH
+        softcap: ethers.utils.parseEther('1'), // 150 ETH
+        min_contribution: ethers.utils.parseEther('0.1'), // 1 ETH
+        max_contribution: ethers.utils.parseEther('1'), // 5 ETH
         startTime: Math.floor(Date.now() / 1000) + 20, // ..
         endTime: Math.floor(Date.now() / 1000) + 20 + 3 * 24 * 60 * 60, // ..
         liquidity_lockup_time: 3 * 24 * 60 * 60, // ex: 1 mont
@@ -294,23 +292,15 @@ describe('test DEX', function () {
       await OpBombPresale.connect(alice).contribute({
         value: ethers.utils.parseEther('1'),
       })
-      await OpBombPresale.connect(alice).contribute({
-        value: ethers.utils.parseEther('4'),
-      })
-      // await expect(
-      //   OpBombPresale.connect(alice).contribute({
-      //     value: ethers.utils.parseEther('4'),
-      //   }),
-      // ).to.be.reverted
 
       await OpBombPresale.connect(bob).contribute({
-        value: ethers.utils.parseEther('5'),
+        value: ethers.utils.parseEther('1'),
       })
-      // await expect(
-      //   OpBombPresale.connect(owner).contribute({
-      //     value: ethers.utils.parseEther('5'),
-      //   }),
-      // ).to.be.reverted
+      await expect(
+        OpBombPresale.connect(owner).contribute({
+          value: ethers.utils.parseEther('1'),
+        }),
+      ).to.be.reverted
 
       // await OpBombPresale.connect(bob).emergencyWithdraw()
       // await OpBombPresale.connect(bob).contribute({
@@ -323,12 +313,19 @@ describe('test DEX', function () {
       console.log('totalRaised', totalRaised)
 
       await OpBombPresale.closePresale()
-      // await OpBombPresale.connect(bob).withdraw();
-      // await OpBombPresale.connect(alice).withdraw();
+      await OpBombPresale.connect(bob).withdraw()
+      await OpBombPresale.connect(alice).withdraw()
 
-      // const aliceBal = BombToken.balanceOf(alice.address)
-      // console.log('aliceBal', aliceBal)
+      const aliceBal = await BombToken.balanceOf(alice.address)
+      console.log('aliceBal', aliceBal)
 
+      let path = [WETH.address, BombToken.address]
+
+      const amounts = await OpBombRouter.getAmountsOut(
+        ethers.utils.parseEther('0.00001'),
+        path,
+      )
+      console.log('amounts', amounts)
     })
   })
 })
