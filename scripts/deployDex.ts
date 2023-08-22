@@ -14,15 +14,15 @@ async function main(): Promise<string> {
 
   // console.log('OpBombFactory_Deployed.address', OpBombFactory_Deployed.address)
 
-  // const WBNB = await ethers.getContractFactory('WBNB')
-  // const WBNB_Deployed = await WBNB.deploy()
+  // const WETH = await ethers.getContractFactory('WETH')
+  // const WETH_Deployed = await WETH.deploy()
 
-  // console.log('WBNB_Deployed.address', WBNB_Deployed.address)
+  // console.log('WETH_Deployed.address', WETH_Deployed.address)
 
   const OpBombRouter = await ethers.getContractFactory('OpBombRouter')
   const OpBombRouter_Deployed = await OpBombRouter.deploy(
     // OpBombFactory_Deployed.address,
-    // WBNB_Deployed.address
+    // WETH_Deployed.address
     "0xBDEF5Dc435E24690651f708FB2250F05A17Fe5c1",
     "0x4D7019A27fc40ba452cd53B5c9Ed455aDF0ff68A"
   )

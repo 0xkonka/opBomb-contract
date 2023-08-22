@@ -15,7 +15,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
     bool initialized = false;
 
     IERC20 public presaleToken;
-    address public wBNB;
+    address public wETH;
     address public pair;
 
     IOpBombFactory private OpBombFactory;
@@ -26,10 +26,10 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
         uint256 price; //  0.015
         uint256 listing_price; // 0.01875
         uint256 liquidity_percent; // 50%
-        uint256 hardcap; // 100 BNB
-        uint256 softcap; // 150 BNB
-        uint256 min_contribution; // 1 BNB
-        uint256 max_contribution; // 5 BNB
+        uint256 hardcap; // 100 ETH
+        uint256 softcap; // 150 ETH
+        uint256 min_contribution; // 1 ETH
+        uint256 max_contribution; // 5 ETH
         uint256 startTime; // ..
         uint256 endTime; // ..
         uint256 liquidity_lockup_time; // ex: 1 mont
@@ -109,10 +109,10 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
         address OpBombFactoryAddress = OpBombRouter.factory();
         OpBombFactory = IOpBombFactory(OpBombFactoryAddress);
 
-        wBNB = OpBombRouter.WETH();
-        pair = OpBombFactory.getPair(address(presaleToken), wBNB);
+        wETH = OpBombRouter.WETH();
+        pair = OpBombFactory.getPair(address(presaleToken), wETH);
         if (pair == address(0x0)) {
-            pair = OpBombFactory.createPair(address(presaleToken), wBNB);
+            pair = OpBombFactory.createPair(address(presaleToken), wETH);
         }
 
         treasury = _treasury;
@@ -158,7 +158,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
         funder.amount = funder.amount + msg.value;
         funder.status = FunderStatus.Invested;
 
-        totalSold += (msg.value * presaleConfig.price) / 10 ** 18;
+        totalSold += (msg.value * presaleConfig.price)  / 10 ** 18 ;
         emit Contribute(_msgSender(), msg.value);
     }
 
@@ -171,7 +171,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
         if (_msgSender() == owner()) {
             if (status == PresaleStatus.Finished) {
                 _safeTransfer(presaleToken, owner(), tokenReminder);
-                _safeTransferBNB(owner(), address(this).balance);
+                _safeTransferETH(owner(), address(this).balance);
             } else if (status == PresaleStatus.Canceled) {
                 _safeTransfer(
                     presaleToken,
@@ -187,8 +187,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
                 "TokenSale: You are not a funder!"
             );
             if (status == PresaleStatus.Finished) {
-                uint256 amount = (funder.amount * presaleConfig.price) /
-                    10 ** 18;
+                uint256 amount = (funder.amount * presaleConfig.price)  / 10 ** 18;                    
                 funder.claimed_amount = amount;
                 funder.status = FunderStatus.Claimed;
                 _safeTransfer(presaleToken, _msgSender(), amount);
@@ -197,7 +196,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
                 uint256 amount = funder.amount;
                 funder.amount = 0;
                 funder.status = FunderStatus.Refunded;
-                _safeTransferBNB(_msgSender(), amount);
+                _safeTransferETH(_msgSender(), amount);
                 emit Withdrawn(_msgSender(), amount);
             }
         }
@@ -223,17 +222,16 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
 
         totalSold =
             totalSold -
-            (funder.amount * presaleConfig.price) /
-            10 ** 18;
+            (funder.amount * presaleConfig.price)  / 10 ** 18;
         emit EmergencyWithdrawn(_msgSender(), amount);
 
         if (emergencyFee > 0) {
             uint256 fee = (amount * emergencyFee) / 10000;
-            _safeTransferBNB(_msgSender(), fee);
+            _safeTransferETH(_msgSender(), fee);
 
             amount = amount - fee;
         }
-        _safeTransferBNB(_msgSender(), amount);
+        _safeTransferETH(_msgSender(), amount);
     }
 
     function closePresale() external nonReentrant onlyOwner {
@@ -256,7 +254,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
     }
 
     receive() external payable {
-        _safeTransferBNB(treasury, msg.value);
+        _safeTransferETH(treasury, msg.value);
     }
 
     function _addLiquidityOnOpBomb()
@@ -266,8 +264,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
         uint256 amountTokenDesired = (totalPaid *
             presaleConfig.listing_price *
             presaleConfig.liquidity_percent) /
-            100 /
-            10 ** 18;
+            100  / 10 ** 18;
         presaleToken.approve(address(OpBombRouter), amountTokenDesired);
 
         unchecked {
@@ -278,9 +275,9 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
             require(tokenReminder >= 0, "Token Reminder Exceeds");
         }
 
-        uint256 amountBNB = (totalPaid * presaleConfig.liquidity_percent) / 100;
+        uint256 amountETH = (totalPaid * presaleConfig.liquidity_percent) / 100;
         (amountA, amountB, liquidity) = OpBombRouter.addLiquidityETH{
-            value: amountBNB / 1000
+            value: amountETH
         }(
             address(presaleToken),
             amountTokenDesired,
@@ -320,7 +317,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
     }
 
     function _transferFee(uint256 _amount) internal {
-        _safeTransferBNB(treasury, (_amount * ethFee) / 10000);
+        _safeTransferETH(treasury, (_amount * ethFee) / 10000);
         _safeTransfer(
             presaleToken,
             treasury,
@@ -328,9 +325,9 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
         );
     }
 
-    function _safeTransferBNB(address _to, uint256 _value) internal {
+    function _safeTransferETH(address _to, uint256 _value) internal {
         (bool success, ) = _to.call{ value: _value }(new bytes(0));
-        require(success, "TransferHelper: BNB_TRANSFER_FAILED");
+        require(success, "TransferHelper: ETH_TRANSFER_FAILED");
     }
 
     function _safeTransfer(

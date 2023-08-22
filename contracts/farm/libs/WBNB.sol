@@ -2,8 +2,8 @@
 pragma solidity ^0.8.4;
 
 contract WBNB {
-    string public name = "Wrapped BNB";
-    string public symbol = "WBNB";
+    string public name = "Wrapped ETH";
+    string public symbol = "WETH";
     uint8 public decimals = 18;
 
     event Approval(address indexed src, address indexed guy, uint256 wad);

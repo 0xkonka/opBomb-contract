@@ -13,7 +13,7 @@ import {
   OpBombFactory,
   OpBombRouter,
   MockERC20,
-  WBNB,
+  WETH,
   OpBombPair,
   OpBombPresale,
   BombToken,
@@ -35,7 +35,7 @@ describe('test DEX', function () {
   let token1: MockERC20
   let token2: MockERC20
   let token3: MockERC20
-  let WBNB: WBNB
+  let WETH: WETH
   let OpBombPresale: OpBombPresale
   let BombToken: BombToken
   let SyrupBar: SyrupBar
@@ -49,11 +49,11 @@ describe('test DEX', function () {
     controller = signers[4]
 
     // Deploy tokens
-    let receipt = await deployments.deploy('WBNB', {
+    let receipt = await deployments.deploy('WETH', {
       from: owner.address,
       log: true,
     })
-    WBNB = await ethers.getContractAt('WBNB', receipt.address)
+    WETH = await ethers.getContractAt('WETH', receipt.address)
     receipt = await deployments.deploy('MockERC20', {
       from: owner.address,
       args: ['Token1', 'Token1', ethers.utils.parseEther('1000000')],
@@ -95,7 +95,7 @@ describe('test DEX', function () {
     // Deploy Router
     receipt = await deployments.deploy('OpBombRouter', {
       from: owner.address,
-      args: [OpBombFactory.address, WBNB.address],
+      args: [OpBombFactory.address, WETH.address],
       log: true,
     })
     OpBombRouter = await ethers.getContractAt('OpBombRouter', receipt.address)
@@ -141,16 +141,16 @@ describe('test DEX', function () {
         .connect(owner)
         .transfer(alice.address, ethers.utils.parseEther('20000'))
 
-      await WBNB.connect(owner).deposit({
+      await WETH.connect(owner).deposit({
         value: ethers.utils.parseEther('100'),
       })
-      await WBNB.connect(alice).deposit({
+      await WETH.connect(alice).deposit({
         value: ethers.utils.parseEther('100'),
       })
-      await WBNB.connect(bob).deposit({ value: ethers.utils.parseEther('100') })
+      await WETH.connect(bob).deposit({ value: ethers.utils.parseEther('100') })
     })
     it('Add Liquidity', async function () {
-      // BNB/token1 1: 60
+      // ETH/token1 1: 60
       await token1
         .connect(bob)
         .approve(OpBombRouter.address, ethers.utils.parseEther('3000'))
@@ -163,8 +163,8 @@ describe('test DEX', function () {
         ethers.constants.MaxUint256,
         { value: ethers.utils.parseEther('50') },
       )
-      // WBNB/token1 1: 60
-      await WBNB.connect(bob).approve(
+      // WETH/token1 1: 60
+      await WETH.connect(bob).approve(
         OpBombRouter.address,
         ethers.utils.parseEther('50'),
       )
@@ -172,7 +172,7 @@ describe('test DEX', function () {
         .connect(bob)
         .approve(OpBombRouter.address, ethers.utils.parseEther('3000'))
       await OpBombRouter.connect(bob).addLiquidity(
-        WBNB.address,
+        WETH.address,
         token1.address,
         ethers.utils.parseEther('50'),
         ethers.utils.parseEther('3000'),
@@ -202,7 +202,7 @@ describe('test DEX', function () {
 
     })
     it('Swap ETH to Token1', async function () {
-      let path = [WBNB.address, token1.address]
+      let path = [WETH.address, token1.address]
 
       // Swap token1 10 to token2
       const amounts = await OpBombRouter.getAmountsOut(
@@ -246,14 +246,14 @@ describe('test DEX', function () {
       // console.log('reserve2', reserve)
     })
     it('Swap ETH to Token1', async function () {
-      let path = [WBNB.address, token1.address]
+      let path = [WETH.address, token1.address]
 
-      // Swap WBNB 10 to token1
+      // Swap WETH 10 to token1
       const amounts = await OpBombRouter.getAmountsOut(
         ethers.utils.parseEther('1'),
         path,
       )
-      await WBNB.connect(bob).approve(
+      await WETH.connect(bob).approve(
         OpBombRouter.address,
         ethers.utils.parseEther('10'),
       )
@@ -270,11 +270,11 @@ describe('test DEX', function () {
         token: BombToken.address, // OpBomb token address
         price: ethers.utils.parseEther('0.015'), //  0.015
         listing_price: ethers.utils.parseEther('0.01875'), // 0.01875
-        liquidity_percent: ethers.utils.parseEther('50'), // 50%
-        hardcap: ethers.utils.parseEther('10'), // 100 BNB
-        softcap: ethers.utils.parseEther('8'), // 150 BNB
-        min_contribution: ethers.utils.parseEther('1'), // 1 BNB
-        max_contribution: ethers.utils.parseEther('5'), // 5 BNB
+        liquidity_percent: 50, // 50%
+        hardcap: ethers.utils.parseEther('10'), // 100 ETH
+        softcap: ethers.utils.parseEther('8'), // 150 ETH
+        min_contribution: ethers.utils.parseEther('1'), // 1 ETH
+        max_contribution: ethers.utils.parseEther('5'), // 5 ETH
         startTime: Math.floor(Date.now() / 1000) + 20, // ..
         endTime: Math.floor(Date.now() / 1000) + 20 + 3 * 24 * 60 * 60, // ..
         liquidity_lockup_time: 3 * 24 * 60 * 60, // ex: 1 mont
@@ -290,7 +290,7 @@ describe('test DEX', function () {
         0,
       )
 
-      // Contribute 1 BNB to Presale
+      // Contribute 1 ETH to Presale
       await OpBombPresale.connect(alice).contribute({
         value: ethers.utils.parseEther('1'),
       })

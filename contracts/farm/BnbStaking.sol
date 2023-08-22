@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-interface IWBNB {
+interface IWETH {
     function deposit() external payable;
 
     function transfer(address to, uint256 value) external returns (bool);
@@ -14,7 +14,7 @@ interface IWBNB {
     function withdraw(uint256) external;
 }
 
-contract BnbStaking is Ownable {
+contract ETHStaking is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -39,8 +39,8 @@ contract BnbStaking is Ownable {
     // adminAddress
     address public adminAddress;
 
-    // WBNB
-    address public immutable WBNB;
+    // WETH
+    address public immutable WETH;
 
     // CAKE tokens created per block.
     uint256 public rewardPerBlock;
@@ -49,7 +49,7 @@ contract BnbStaking is Ownable {
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
     mapping(address => UserInfo) public userInfo;
-    // limit 10 BNB here
+    // limit 10 ETH here
     uint256 public limitAmount = 10000000000000000000;
     // Total allocation poitns. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
@@ -69,14 +69,14 @@ contract BnbStaking is Ownable {
         uint256 _startBlock,
         uint256 _bonusEndBlock,
         address _adminAddress,
-        address _wbnb
+        address _wETH
     ) {
         rewardToken = _rewardToken;
         rewardPerBlock = _rewardPerBlock;
         startBlock = _startBlock;
         bonusEndBlock = _bonusEndBlock;
         adminAddress = _adminAddress;
-        WBNB = _wbnb;
+        WETH = _wETH;
 
         // staking pool
         poolInfo.push(PoolInfo({lpToken: _lp, allocPoint: 1000, lastRewardBlock: startBlock, accCakePerShare: 0}));
@@ -90,7 +90,7 @@ contract BnbStaking is Ownable {
     }
 
     receive() external payable {
-        assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
+        assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
     }
 
     // Update admin address by the previous dev.
@@ -177,8 +177,8 @@ contract BnbStaking is Ownable {
             }
         }
         if (msg.value > 0) {
-            IWBNB(WBNB).deposit{value: msg.value}();
-            assert(IWBNB(WBNB).transfer(address(this), msg.value));
+            IWETH(WETH).deposit{value: msg.value}();
+            assert(IWETH(WETH).transfer(address(this), msg.value));
             user.amount = user.amount.add(msg.value);
         }
         user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
@@ -186,7 +186,7 @@ contract BnbStaking is Ownable {
         emit Deposit(msg.sender, msg.value);
     }
 
-    function safeTransferBNB(address to, uint256 value) internal {
+    function safeTransferETH(address to, uint256 value) internal {
         (bool success, ) = to.call{gas: 23000, value: value}("");
         // (bool success,) = to.call{value:value}(new bytes(0));
         require(success, "TransferHelper: ETH_TRANSFER_FAILED");
@@ -204,8 +204,8 @@ contract BnbStaking is Ownable {
         }
         if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
-            IWBNB(WBNB).withdraw(_amount);
-            safeTransferBNB(address(msg.sender), _amount);
+            IWETH(WETH).withdraw(_amount);
+            safeTransferETH(address(msg.sender), _amount);
         }
         user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
 
