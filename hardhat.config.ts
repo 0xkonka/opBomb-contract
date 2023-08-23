@@ -55,6 +55,8 @@ const config: HardhatUserConfig = {
     currency: 'USD',
   },
   etherscan: {
+    // apiKey: "WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y",
+    // customChains: [],
     apiKey: {
       rinkeby: 'XFAGSFB6UXE9MFTA9AHJMGHMXI8IXRVCHW',
       ropsten: 'XFAGSFB6UXE9MFTA9AHJMGHMXI8IXRVCHW',
@@ -63,6 +65,7 @@ const config: HardhatUserConfig = {
       avalanche: 'WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y',
       avalancheFujiTestnet: 'WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y',
     },
+    customChains: []
   },
   paths: {
     artifacts: './artifacts',

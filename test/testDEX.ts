@@ -163,6 +163,17 @@ describe('test DEX', function () {
         ethers.constants.MaxUint256,
         { value: ethers.utils.parseEther('50') },
       )
+
+      // let pairAddr = await OpBombFactory.getPair(
+      //   WETH.address,
+      //   token1.address,
+      // )
+      // let pair : OpBombPair = await ethers.getContractAt('OpBombPair', pairAddr)
+      // const total = await pair.totalSupply();
+      // const bal = await pair.balanceOf(bob.address);
+      // console.log('total', total)
+      // console.log('bal', bal)
+
       // WETH/token1 1: 60
       await WETH.connect(bob).approve(
         OpBombRouter.address,
@@ -243,7 +254,7 @@ describe('test DEX', function () {
       // reserve = await OpBombPair.getReserves()
       // console.log('reserve2', reserve)
     })
-    it('Swap ETH to Token1', async function () {
+    it('Swap WETH to Token1', async function () {
       let path = [WETH.address, token1.address]
 
       // Swap WETH 10 to token1
@@ -273,7 +284,7 @@ describe('test DEX', function () {
         softcap: ethers.utils.parseEther('1'), // 150 ETH
         min_contribution: ethers.utils.parseEther('0.1'), // 1 ETH
         max_contribution: ethers.utils.parseEther('1'), // 5 ETH
-        startTime: Math.floor(Date.now() / 1000) + 20, // ..
+        startTime: Math.floor(Date.now() / 1000), // ..
         endTime: Math.floor(Date.now() / 1000) + 20 + 3 * 24 * 60 * 60, // ..
         liquidity_lockup_time: 3 * 24 * 60 * 60, // ex: 1 mont
       }
@@ -307,25 +318,40 @@ describe('test DEX', function () {
       //   value: ethers.utils.parseEther('5'),
       // })
 
-      const totalHold = await OpBombPresale.totalSold()
-      const totalRaised = await OpBombPresale.totalRaised()
-      console.log('totalHold  ', totalHold)
-      console.log('totalRaised', totalRaised)
+      // const totalHold = await OpBombPresale.totalSold()
+      // const totalRaised = await OpBombPresale.totalRaised()
+      // console.log('totalHold  ', totalHold)
+      // console.log('totalRaised', totalRaised)
 
       await OpBombPresale.closePresale()
       await OpBombPresale.connect(bob).withdraw()
       await OpBombPresale.connect(alice).withdraw()
 
-      const aliceBal = await BombToken.balanceOf(alice.address)
-      console.log('aliceBal', aliceBal)
+      // const aliceBal = await BombToken.balanceOf(alice.address)
+      // console.log('aliceBal', aliceBal)
+
+      let pairAddr = await OpBombFactory.getPair(
+        WETH.address,
+        BombToken.address,
+      )
+      let pair : OpBombPair = await ethers.getContractAt('OpBombPair', pairAddr)
+      const total = await pair.totalSupply();
+      const bal1 = await pair.balanceOf(owner.address);
+      const bal2 = await pair.balanceOf(bob.address);
+      const bal3 = await pair.balanceOf(OpBombPresale.address);
+      const bal4 = await pair.balanceOf(pair.address);
+      console.log('total', total)
+      console.log('bal1', bal1)
+      console.log('bal2', bal2)
+      console.log('bal3', bal3)
+      console.log('bal4', bal4)
 
       let path = [WETH.address, BombToken.address]
-
       const amounts = await OpBombRouter.getAmountsOut(
         ethers.utils.parseEther('0.00001'),
         path,
       )
-      console.log('amounts', amounts)
+      // console.log('amounts', amounts)
     })
   })
 })
