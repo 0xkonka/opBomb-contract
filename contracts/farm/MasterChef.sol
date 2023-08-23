@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./BombToken.sol";
 import "./SyrupBar.sol";
 
+import "hardhat/console.sol";
 
 // MasterChef is the master of Bomb. He can make Bomb and he is a fair guy.
 //
@@ -59,13 +60,12 @@ contract MasterChef is Ownable {
     uint256 public BONUS_MULTIPLIER = 1;
     // Deposit Fee address
     address public feeAddress;
-    
     // Info of each pool.
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Check if lpToken pool exist or not
-    mapping (IERC20 => bool) public isPoolExist;
+    mapping(IERC20 => bool) public isPoolExist;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
     // The block number when Bomb mining starts.
@@ -121,7 +121,7 @@ contract MasterChef is Ownable {
     function add(
         uint256 _allocPoint,
         IERC20 _lpToken,
-         uint16 _depositFeeBP,
+        uint16 _depositFeeBP,
         bool _withUpdate
     ) public onlyOwner {
         require(!isPoolExist[_lpToken], "Pool already exist");
@@ -140,7 +140,7 @@ contract MasterChef is Ownable {
                 allocPoint: _allocPoint,
                 lastRewardBlock: lastRewardBlock,
                 accBombPerShare: 0,
-                depositFeeBP : _depositFeeBP
+                depositFeeBP: _depositFeeBP
             })
         );
         updateStakingPool();
@@ -213,8 +213,7 @@ contract MasterChef is Ownable {
                 BombReward.mul(1e12).div(lpSupply)
             );
         }
-        return
-            user.amount.mul(accBombPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accBombPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -246,6 +245,7 @@ contract MasterChef is Ownable {
         pool.accBombPerShare = pool.accBombPerShare.add(
             BombReward.mul(1e12).div(lpSupply)
         );
+
         pool.lastRewardBlock = block.number;
     }
 
@@ -292,7 +292,6 @@ contract MasterChef is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
-
         updatePool(_pid);
         uint256 pending = user.amount.mul(pool.accBombPerShare).div(1e12).sub(
             user.rewardDebt
@@ -338,8 +337,8 @@ contract MasterChef is Ownable {
             }
         }
         user.rewardDebt = user.amount.mul(pool.accBombPerShare).div(1e12);
+        syrup.mint(msg.sender, _amount);
 
-        
         emit Deposit(msg.sender, 0, _amount);
     }
 
@@ -360,7 +359,6 @@ contract MasterChef is Ownable {
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
         user.rewardDebt = user.amount.mul(pool.accBombPerShare).div(1e12);
-
         syrup.burn(msg.sender, _amount);
         emit Withdraw(msg.sender, 0, _amount);
     }

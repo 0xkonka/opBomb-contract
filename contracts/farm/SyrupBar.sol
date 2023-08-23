@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import './BombToken.sol';
+import "hardhat/console.sol";
 
 // SyrupBar with Governance.
 contract SyrupBar is ERC20("SyrupBar Token", "SYRUP"), Ownable {

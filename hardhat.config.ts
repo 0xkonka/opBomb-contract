@@ -44,8 +44,19 @@ const config: HardhatUserConfig = {
       gasPrice: 26000000000,
       accounts: process.env.Memonic !== undefined ? [process.env.Memonic] : [],
     },
+    'base-mainnet': {
+      url: 'https://mainnet.base.org',
+      accounts: process.env.Memonic !== undefined ? [process.env.Memonic] : [],
+      gasPrice: 1000000000,
+    },
+    // for testnet
+    'base-goerli': {
+      url: 'https://goerli.base.org',
+      accounts: process.env.Memonic !== undefined ? [process.env.Memonic] : [],
+      gasPrice: 1000000000,
+    },
     mainnet: {
-      url: "https://eth-mainnet.alchemyapi.io/v2/y6JWvczJyMCtx6wgho1QMqOrRFUoVadE",
+      url: 'https://eth-mainnet.alchemyapi.io/v2/y6JWvczJyMCtx6wgho1QMqOrRFUoVadE',
       accounts: process.env.Memonic !== undefined ? [process.env.Memonic] : [],
       gasPrice: 15000000000,
     },
@@ -55,17 +66,26 @@ const config: HardhatUserConfig = {
     currency: 'USD',
   },
   etherscan: {
-    // apiKey: "WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y",
+    apiKey: 'd9f328cd-ed54-4094-9a88-99a25fe5b11d',
     // customChains: [],
-    apiKey: {
-      rinkeby: 'XFAGSFB6UXE9MFTA9AHJMGHMXI8IXRVCHW',
-      ropsten: 'XFAGSFB6UXE9MFTA9AHJMGHMXI8IXRVCHW',
-      bsc: 'A263TZTNDWUC9NKI1AMBVJJC8H3SA547AF',
-      bscTestnet: 'A263TZTNDWUC9NKI1AMBVJJC8H3SA547AF',
-      avalanche: 'WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y',
-      avalancheFujiTestnet: 'WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y',
-    },
-    customChains: []
+    // apiKey: {
+    //   rinkeby: 'XFAGSFB6UXE9MFTA9AHJMGHMXI8IXRVCHW',
+    //   ropsten: 'XFAGSFB6UXE9MFTA9AHJMGHMXI8IXRVCHW',
+    //   bsc: 'A263TZTNDWUC9NKI1AMBVJJC8H3SA547AF',
+    //   bscTestnet: 'A263TZTNDWUC9NKI1AMBVJJC8H3SA547AF',
+    //   avalanche: 'WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y',
+    //   avalancheFujiTestnet: 'WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y',
+    // },
+    customChains: [
+      {
+        network: 'base-goerli',
+        chainId: 84531,
+        urls: {
+          apiURL: 'https://api-goerli.basescan.org/api',
+          browserURL: 'https://goerli.basescan.org',
+        },
+      },
+    ],
   },
   paths: {
     artifacts: './artifacts',
@@ -83,7 +103,7 @@ const config: HardhatUserConfig = {
     // },
     compilers: [
       {
-        version: "0.8.4",
+        version: '0.8.4',
         settings: {
           optimizer: {
             enabled: true,
@@ -92,7 +112,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.6.12",
+        version: '0.6.12',
         settings: {
           optimizer: {
             enabled: true,
@@ -101,7 +121,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.6.6",
+        version: '0.6.6',
         settings: {
           optimizer: {
             enabled: true,
@@ -110,7 +130,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.5.16",
+        version: '0.5.16',
         settings: {
           optimizer: {
             enabled: true,
@@ -119,7 +139,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.4.18",
+        version: '0.4.18',
         settings: {
           optimizer: {
             enabled: true,

@@ -1,6 +1,7 @@
 import { expect } from 'chai'
-import { deployments, ethers, upgrades } from 'hardhat'
+import { deployments, ethers, network, upgrades } from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { time, mine } from '@nomicfoundation/hardhat-network-helpers'
 import { BigNumber } from 'ethers'
 import {
   keccak256,
@@ -18,10 +19,11 @@ import {
   OpBombPresale,
   BombToken,
   SyrupBar,
+  MasterChef,
 } from '../typechain'
 import { execPath } from 'process'
 
-describe('test DEX', function () {
+describe('test', function () {
   // Account
   let owner: SignerWithAddress
   let feeManager: SignerWithAddress
@@ -30,15 +32,21 @@ describe('test DEX', function () {
   let bob: SignerWithAddress
 
   // Contract
-  let OpBombFactory: OpBombFactory
-  let OpBombRouter: OpBombRouter
   let token1: MockERC20
   let token2: MockERC20
   let token3: MockERC20
-  let WETH: WETH
-  let OpBombPresale: OpBombPresale
   let BombToken: BombToken
+  let WETH: WETH
+
+  let OpBombFactory: OpBombFactory
+  let OpBombRouter: OpBombRouter
+  let OpBombPresale: OpBombPresale
+  let MasterChef: MasterChef
   let SyrupBar: SyrupBar
+
+  // Constant
+  const BombPerBlock = ethers.utils.parseEther('0.03')
+  const startBlock = 0
 
   before(async () => {
     const signers = await ethers.getSigners()
@@ -105,6 +113,27 @@ describe('test DEX', function () {
       log: true,
     })
     OpBombPresale = await ethers.getContractAt('OpBombPresale', receipt.address)
+    // Deploy Syrup
+    receipt = await deployments.deploy('SyrupBar', {
+      from: owner.address,
+      args: [BombToken.address],
+      log: true,
+    })
+    SyrupBar = await ethers.getContractAt('SyrupBar', receipt.address)
+    // Deploy Farm
+    receipt = await deployments.deploy('MasterChef', {
+      from: owner.address,
+      args: [
+        BombToken.address,
+        SyrupBar.address,
+        feeManager.address,
+        feeManager.address,
+        BombPerBlock,
+        startBlock,
+      ],
+      log: true,
+    })
+    MasterChef = await ethers.getContractAt('MasterChef', receipt.address)
   })
   describe('Deploy contract', async () => {
     it('should be deployed', async () => {})
@@ -163,17 +192,6 @@ describe('test DEX', function () {
         ethers.constants.MaxUint256,
         { value: ethers.utils.parseEther('50') },
       )
-
-      // let pairAddr = await OpBombFactory.getPair(
-      //   WETH.address,
-      //   token1.address,
-      // )
-      // let pair : OpBombPair = await ethers.getContractAt('OpBombPair', pairAddr)
-      // const total = await pair.totalSupply();
-      // const bal = await pair.balanceOf(bob.address);
-      // console.log('total', total)
-      // console.log('bal', bal)
-
       // WETH/token1 1: 60
       await WETH.connect(bob).approve(
         OpBombRouter.address,
@@ -192,7 +210,6 @@ describe('test DEX', function () {
         bob.address,
         ethers.constants.MaxUint256,
       )
-
       // token1/token2 10:1000
       await token1
         .connect(alice)
@@ -274,6 +291,8 @@ describe('test DEX', function () {
         ethers.constants.MaxUint256,
       )
     })
+  })
+  describe('Presale', async () => {
     it('Presale', async function () {
       let PresaleConfig = {
         token: BombToken.address, // OpBomb token address
@@ -286,7 +305,7 @@ describe('test DEX', function () {
         max_contribution: ethers.utils.parseEther('1'), // 5 ETH
         startTime: Math.floor(Date.now() / 1000), // ..
         endTime: Math.floor(Date.now() / 1000) + 20 + 3 * 24 * 60 * 60, // ..
-        liquidity_lockup_time: 3 * 24 * 60 * 60, // ex: 1 mont
+        // liquidity_lockup_time: 3 * 24 * 60 * 60, // ex: 1 mont
       }
 
       await OpBombPresale.initialize(
@@ -313,19 +332,13 @@ describe('test DEX', function () {
         }),
       ).to.be.reverted
 
-      // await OpBombPresale.connect(bob).emergencyWithdraw()
-      // await OpBombPresale.connect(bob).contribute({
-      //   value: ethers.utils.parseEther('5'),
-      // })
-
-      // const totalHold = await OpBombPresale.totalSold()
-      // const totalRaised = await OpBombPresale.totalRaised()
-      // console.log('totalHold  ', totalHold)
-      // console.log('totalRaised', totalRaised)
-
       await OpBombPresale.closePresale()
-      await OpBombPresale.connect(bob).withdraw()
+      await expect(OpBombPresale.connect(bob).withdraw()).to.be.reverted
+
+      await OpBombPresale.addLiquidityOnOpBomb()
+
       await OpBombPresale.connect(alice).withdraw()
+      await OpBombPresale.connect(bob).withdraw()
 
       // const aliceBal = await BombToken.balanceOf(alice.address)
       // console.log('aliceBal', aliceBal)
@@ -334,24 +347,100 @@ describe('test DEX', function () {
         WETH.address,
         BombToken.address,
       )
-      let pair : OpBombPair = await ethers.getContractAt('OpBombPair', pairAddr)
-      const total = await pair.totalSupply();
-      const bal1 = await pair.balanceOf(owner.address);
-      const bal2 = await pair.balanceOf(bob.address);
-      const bal3 = await pair.balanceOf(OpBombPresale.address);
-      const bal4 = await pair.balanceOf(pair.address);
-      console.log('total', total)
-      console.log('bal1', bal1)
-      console.log('bal2', bal2)
-      console.log('bal3', bal3)
-      console.log('bal4', bal4)
+      // let pair : OpBombPair = await ethers.getContractAt('OpBombPair', pairAddr)
 
-      let path = [WETH.address, BombToken.address]
-      const amounts = await OpBombRouter.getAmountsOut(
-        ethers.utils.parseEther('0.00001'),
-        path,
-      )
+      // let path = [WETH.address, BombToken.address]
+      // const amounts = await OpBombRouter.getAmountsOut(
+      //   ethers.utils.parseEther('0.00001'),
+      //   path,
+      // )
       // console.log('amounts', amounts)
+    })
+  })
+  describe('Farm', async () => {
+    it('Initialize', async function () {
+      await BombToken.transferOwnership(MasterChef.address)
+      await SyrupBar.transferOwnership(MasterChef.address)
+
+      // await BombToken.mint(feeManager.address, ethers.utils.parseEther('1'), {
+      //   from: MasterChef.address,
+      // })
+    })
+    it('add LP to farm', async function () {
+      let LPAddr = await OpBombFactory.getPair(WETH.address, token1.address)
+      await MasterChef.add(1000, LPAddr, 500, false)
+      LPAddr = await OpBombFactory.getPair(token1.address, token2.address)
+      await MasterChef.add(2000, LPAddr, 500, false)
+
+      await MasterChef.set(1, 2000, 500, false)
+    })
+    it('deposit/withdraw', async function () {
+      // Farm LP
+
+      let BombBal = await BombToken.balanceOf(bob.address)
+      console.log('BombBal', BombBal)
+
+      let LPAddr = await OpBombFactory.getPair(WETH.address, token1.address)
+      let OpBombPair = await ethers.getContractAt('OpBombPair', LPAddr)
+
+      let bobLPBalbefore = await OpBombPair.balanceOf(bob.address)
+
+      await OpBombPair.connect(bob).approve(MasterChef.address, bobLPBalbefore)
+      await MasterChef.connect(bob).deposit(1, bobLPBalbefore)
+
+      await mine(10000)
+
+      let bobLPBal = await MasterChef.userInfo(1, bob.address)
+      await MasterChef.connect(bob).withdraw(1, bobLPBal.amount)
+
+      BombBal = await BombToken.balanceOf(bob.address)
+      console.log('BombBal', BombBal)
+
+    })
+    it('enter/leavg staking', async function () {
+      // Farm Bomb
+
+      let BombBal = await BombToken.balanceOf(alice.address)
+      console.log('BombBal1', BombBal)
+      let SyrupBal = await SyrupBar.balanceOf(alice.address)
+      console.log('SyrupBal1', SyrupBal)
+
+      await BombToken.connect(alice).approve(MasterChef.address, BombBal)
+      await MasterChef.connect(alice).enterStaking(BombBal)
+
+      await mine(1000000)
+
+      let enteredBal = await MasterChef.userInfo(0, alice.address)
+      await expect(MasterChef.connect(alice).leaveStaking(BigNumber.from(enteredBal.amount).add(100))).to.be.reverted
+      await MasterChef.connect(alice).leaveStaking(enteredBal.amount)
+      
+      BombBal = await BombToken.balanceOf(alice.address)
+      console.log('BombBal3', BombBal)
+      SyrupBal = await SyrupBar.balanceOf(alice.address)
+      console.log('SyrupBal3', SyrupBal)
+
+    })
+    it('emergency withdraw', async function () {
+      // Farm Bomb
+
+      let BombBal = await BombToken.balanceOf(bob.address)
+      console.log('BombBal', BombBal)
+
+      let LPAddr = await OpBombFactory.getPair(WETH.address, token1.address)
+      let OpBombPair = await ethers.getContractAt('OpBombPair', LPAddr)
+
+      let bobLPBalbefore = await OpBombPair.balanceOf(bob.address)
+
+      await OpBombPair.connect(bob).approve(MasterChef.address, bobLPBalbefore)
+      await MasterChef.connect(bob).deposit(1, bobLPBalbefore)
+
+      await mine(10000)
+
+      await MasterChef.connect(bob).emergencyWithdraw(1)
+
+      BombBal = await BombToken.balanceOf(bob.address)
+      console.log('BombBal', BombBal)
+
     })
   })
 })
