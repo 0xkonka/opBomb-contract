@@ -6,7 +6,7 @@ export const SyrupBar_Deployed = '0xc74077789f7f35302F4160DDb017D6d1D034f235'
 export const OpBombFactory_Deployed = '0x5a844E4E33bAe6f94e2238ce26e8d6E1258B4b9D'
 export const OpBombRouter_Deployed = '0x685f1dEEC077caDFff61Ad8A589Fda4f53F420Ba'
 
-export const OpBombPresale_Deployed = '0xd8E84bD0c67e0775D33BFF82b2e5a486d1C1666e'
+export const OpBombPresale_Deployed = '0x9D59a6b4069210B69BBA952b9E6f553edDDB3392'
 
 export const MasterChef_Deployed = '0xb266fB2F75CD4C61168dCEa1C4Ba3F66B53ab03A'
 

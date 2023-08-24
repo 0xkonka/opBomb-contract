@@ -302,29 +302,32 @@ describe('test', function () {
         hardcap: ethers.utils.parseEther('2'), // 100 ETH
         softcap: ethers.utils.parseEther('1'), // 150 ETH
         min_contribution: ethers.utils.parseEther('0.1'), // 1 ETH
-        max_contribution: ethers.utils.parseEther('1'), // 5 ETH
+        max_contribution: ethers.utils.parseEther('0.6'), // 5 ETH
         startTime: Math.floor(Date.now() / 1000), // ..
         endTime: Math.floor(Date.now() / 1000) + 20 + 3 * 24 * 60 * 60, // ..
         // liquidity_lockup_time: 3 * 24 * 60 * 60, // ex: 1 mont
       }
 
-      await OpBombPresale.initialize(
-        PresaleConfig,
-        OpBombRouter.address,
-        owner.address,
-        feeManager.address,
-        500,
-        0,
-        0,
+      await OpBombPresale.initialize(PresaleConfig, OpBombRouter.address)
+      await OpBombPresale.setMerkleRoot(
+        '0x876af87d2c2270871c553651eb0105b1c644c49943522d9e5d0cb2d95fc8386c',
       )
+      const merkleProof = [
+        '0x8c557369414fd9dd8ef546bce04855821e44e71d763aaa55501c23e0dbf38eeb',
+        '0xae73d1fcbd53d6d09e655449c513f25ea6a566b9a557815c040fa6449a7de51e',
+        '0xbf0b563da012c196209ac6e1cb6f868bdec1edbf75ca606d62c40fd0cb9c5072',
+        '0x1afa38b8ea113d5542d4fd32efef112cc62a31098b6fffa2c92bd7a31a0e34c8',
+        '0x33d5db91db078f829009bddae233e8232d7c6473728c44423467f194d70bb9d6',
+        '0xf2ef4afe1fd45e111cf7a39fe47e6395d700369303744c8e259e90e51e906413',
+      ]
 
       // Contribute 1 ETH to Presale
       await OpBombPresale.connect(alice).contribute({
-        value: ethers.utils.parseEther('1'),
+        value: ethers.utils.parseEther('0.5'),
       })
 
       await OpBombPresale.connect(bob).contribute({
-        value: ethers.utils.parseEther('1'),
+        value: ethers.utils.parseEther('0.5'),
       })
       await expect(
         OpBombPresale.connect(owner).contribute({
@@ -332,21 +335,27 @@ describe('test', function () {
         }),
       ).to.be.reverted
 
+      const viewClaimableAmount = await OpBombPresale.connect(bob).viewClaimableAmount(
+        merkleProof,
+      )
+      console.log('viewClaimableAmount', viewClaimableAmount)
+
       await OpBombPresale.closePresale()
-      await expect(OpBombPresale.connect(bob).withdraw()).to.be.reverted
+      await expect(OpBombPresale.connect(bob).claim(merkleProof)).to.be.reverted
 
-      await OpBombPresale.addLiquidityOnOpBomb()
+      // await OpBombPresale.addLiquidityOnOpBomb()
+      await OpBombPresale.setPresaleFinished()
 
-      await OpBombPresale.connect(alice).withdraw()
-      await OpBombPresale.connect(bob).withdraw()
+      await OpBombPresale.connect(alice).claim(merkleProof)
+      await OpBombPresale.connect(bob).claim(merkleProof)
 
       // const aliceBal = await BombToken.balanceOf(alice.address)
       // console.log('aliceBal', aliceBal)
 
-      let pairAddr = await OpBombFactory.getPair(
-        WETH.address,
-        BombToken.address,
-      )
+      // let pairAddr = await OpBombFactory.getPair(
+      //   WETH.address,
+      //   BombToken.address,
+      // )
       // let pair : OpBombPair = await ethers.getContractAt('OpBombPair', pairAddr)
 
       // let path = [WETH.address, BombToken.address]
@@ -395,7 +404,6 @@ describe('test', function () {
 
       BombBal = await BombToken.balanceOf(bob.address)
       console.log('BombBal', BombBal)
-
     })
     it('enter/leavg staking', async function () {
       // Farm Bomb
@@ -411,14 +419,17 @@ describe('test', function () {
       await mine(1000000)
 
       let enteredBal = await MasterChef.userInfo(0, alice.address)
-      await expect(MasterChef.connect(alice).leaveStaking(BigNumber.from(enteredBal.amount).add(100))).to.be.reverted
+      await expect(
+        MasterChef.connect(alice).leaveStaking(
+          BigNumber.from(enteredBal.amount).add(100),
+        ),
+      ).to.be.reverted
       await MasterChef.connect(alice).leaveStaking(enteredBal.amount)
-      
+
       BombBal = await BombToken.balanceOf(alice.address)
       console.log('BombBal3', BombBal)
       SyrupBal = await SyrupBar.balanceOf(alice.address)
       console.log('SyrupBal3', SyrupBal)
-
     })
     it('emergency withdraw', async function () {
       // Farm Bomb
@@ -440,7 +451,6 @@ describe('test', function () {
 
       BombBal = await BombToken.balanceOf(bob.address)
       console.log('BombBal', BombBal)
-
     })
   })
 })
