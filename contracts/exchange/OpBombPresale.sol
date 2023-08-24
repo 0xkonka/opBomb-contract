@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+// import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./interfaces/IOpBombRouter02.sol";
@@ -69,6 +70,8 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
         uint256 softcap; // 150 ETH
         uint256 min_contribution; // 1 ETH
         uint256 max_contribution; // 5 ETH
+        uint256 white_startTime; // ..
+        uint256 white_endTime; // ..
         uint256 startTime; // ..
         uint256 endTime; // ..
     }
@@ -104,8 +107,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
 
     event Contribute(address funder, uint256 amount);
     event Claimed(address funder, uint256 amount);
-    event Withdrawn(address funder, uint256 amount);
-
+    
     event PresaleClosed();
     event LiquidityAdded(address token, uint256 amount);
 
@@ -138,7 +140,9 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
     }
 
     // User functions
-    function contribute() external payable nonReentrant {
+    function contribute(
+        bytes32[] calldata merkleProof
+    ) external payable nonReentrant {
         require(
             msg.value >= presaleConfig.min_contribution,
             "TokenSale: Contribution amount is too low!"
@@ -148,18 +152,34 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
             "TokenSale: Contribution amount is too high!"
         );
         require(
-            block.timestamp > presaleConfig.startTime,
-            "TokenSale: Presale is not started yet!"
-        );
-        require(
-            block.timestamp < presaleConfig.endTime,
-            "TokenSale: Presale is over!"
-        );
-        require(
             address(this).balance <= presaleConfig.hardcap,
             "TokenSale: Hard cap was reached!"
         );
+
         require(status == PresaleStatus.Started, "TokenSale: Presale is over!");
+
+        bool isWhitelister = whiteLister(merkleProof);
+
+        if (isWhitelister) {
+            require(
+                block.timestamp > presaleConfig.white_startTime,
+                "TokenSale: White Presale is not started yet!"
+            );
+            require(
+                block.timestamp < presaleConfig.white_endTime,
+                "TokenSale: White Presale is over!"
+            );
+        } else {
+            require(
+                block.timestamp > presaleConfig.startTime,
+                "TokenSale: Presale is not started yet!"
+            );
+
+            require(
+                block.timestamp < presaleConfig.endTime,
+                "TokenSale: Presale is over!"
+            );
+        }
 
         Funder storage funder = funders[_msgSender()];
         require(
@@ -172,7 +192,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
 
         funder.amount = funder.amount + msg.value;
         funder.status = FunderStatus.Invested;
-        totalSold += (msg.value * presaleConfig.price)  / 10 ** 18 ;
+        totalSold += (msg.value * presaleConfig.price) / 10 ** 18;
 
         emit Contribute(_msgSender(), msg.value);
     }
@@ -196,7 +216,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
             amount = (funder.amount * presaleConfig.price) / 10 ** 18;
         else
             amount =
-                ((funder.amount * presaleConfig.price) * 95) /
+                ((funder.amount * presaleConfig.price) * 105) /
                 100 /
                 10 ** 18;
 
@@ -207,7 +227,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
     }
 
     function closePresale() external nonReentrant onlyOwner {
-        require(status == PresaleStatus.Started, "TokenSale: already closed");
+        require(status == PresaleStatus.Started, "TokenSale: Already closed");
         _setPresaleStatus(PresaleStatus.Finished);
 
         totalPaid = address(this).balance;
@@ -220,7 +240,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
         return address(this).balance;
     }
 
-    function setPresaleFinished() external nonReentrant onlyOwner {
+    function setPresaleLiquidityAdded() external nonReentrant onlyOwner {
         _setPresaleStatus(PresaleStatus.LiquidityAdded);
     }
 
@@ -277,11 +297,11 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
     function whiteLister(
         bytes32[] calldata merkleProof
     ) public view returns (bool) {
-        bool whitelisted = MerkleProof.verify(
-            merkleProof,
-            merkleRoot,
-            keccak256(abi.encodePacked(msg.sender))
+        bytes32 leaf = keccak256(
+            bytes.concat(keccak256(abi.encode(msg.sender)))
         );
+
+        bool whitelisted = MerkleProof.verify(merkleProof, merkleRoot, leaf);
         return whitelisted;
     }
 
@@ -295,7 +315,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
             amount = (funder.amount * presaleConfig.price) / 10 ** 18;
         else
             amount =
-                ((funder.amount * presaleConfig.price) * 95) /
+                ((funder.amount * presaleConfig.price) * 105) /
                 100 /
                 10 ** 18;
         return amount;

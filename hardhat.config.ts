@@ -66,16 +66,16 @@ const config: HardhatUserConfig = {
     currency: 'USD',
   },
   etherscan: {
-    apiKey: 'd9f328cd-ed54-4094-9a88-99a25fe5b11d',
+    // apiKey: 'd9f328cd-ed54-4094-9a88-99a25fe5b11d',
     // customChains: [],
-    // apiKey: {
-    //   rinkeby: 'XFAGSFB6UXE9MFTA9AHJMGHMXI8IXRVCHW',
-    //   ropsten: 'XFAGSFB6UXE9MFTA9AHJMGHMXI8IXRVCHW',
-    //   bsc: 'A263TZTNDWUC9NKI1AMBVJJC8H3SA547AF',
-    //   bscTestnet: 'A263TZTNDWUC9NKI1AMBVJJC8H3SA547AF',
-    //   avalanche: 'WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y',
-    //   avalancheFujiTestnet: 'WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y',
-    // },
+    apiKey: {
+      rinkeby: 'XFAGSFB6UXE9MFTA9AHJMGHMXI8IXRVCHW',
+      ropsten: 'XFAGSFB6UXE9MFTA9AHJMGHMXI8IXRVCHW',
+      bsc: 'A263TZTNDWUC9NKI1AMBVJJC8H3SA547AF',
+      bscTestnet: 'A263TZTNDWUC9NKI1AMBVJJC8H3SA547AF',
+      avalanche: 'WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y',
+      avalancheFujiTestnet: 'WN8CWW97AHIYUBC665Y4HZ4E5V4GUJZR2Y',
+    },
     customChains: [
       {
         network: 'base-goerli',

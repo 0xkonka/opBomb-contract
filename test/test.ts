@@ -3,6 +3,8 @@ import { deployments, ethers, network, upgrades } from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { time, mine } from '@nomicfoundation/hardhat-network-helpers'
 import { BigNumber } from 'ethers'
+import { StandardMerkleTree } from '@openzeppelin/merkle-tree'
+import { whitelistAddr } from './whitelist'
 import {
   keccak256,
   toBuffer,
@@ -303,51 +305,66 @@ describe('test', function () {
         softcap: ethers.utils.parseEther('1'), // 150 ETH
         min_contribution: ethers.utils.parseEther('0.1'), // 1 ETH
         max_contribution: ethers.utils.parseEther('0.6'), // 5 ETH
+        white_startTime: Math.floor(Date.now() / 1000), // ..
+        white_endTime: Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60, // ..
         startTime: Math.floor(Date.now() / 1000), // ..
         endTime: Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60, // ..
-        // liquidity_lockup_time: 3 * 24 * 60 * 60, // ex: 1 mont
       }
 
+      const tree = StandardMerkleTree.of(whitelistAddr, ['address'])
+      console.log('Merkle Root:', tree.root)
+      let merkleProof
+
       await OpBombPresale.initialize(PresaleConfig, OpBombRouter.address)
-      await OpBombPresale.setMerkleRoot(
-        '0x876af87d2c2270871c553651eb0105b1c644c49943522d9e5d0cb2d95fc8386c',
-      )
-      const merkleProof = [
-        '0x8c557369414fd9dd8ef546bce04855821e44e71d763aaa55501c23e0dbf38eeb',
-        '0xae73d1fcbd53d6d09e655449c513f25ea6a566b9a557815c040fa6449a7de51e',
-        '0xbf0b563da012c196209ac6e1cb6f868bdec1edbf75ca606d62c40fd0cb9c5072',
-        '0x1afa38b8ea113d5542d4fd32efef112cc62a31098b6fffa2c92bd7a31a0e34c8',
-        '0x33d5db91db078f829009bddae233e8232d7c6473728c44423467f194d70bb9d6',
-        '0xf2ef4afe1fd45e111cf7a39fe47e6395d700369303744c8e259e90e51e906413',
-      ]
+      await OpBombPresale.setMerkleRoot(tree.root)
 
       // Contribute 1 ETH to Presale
-      await OpBombPresale.connect(alice).contribute({
+      await OpBombPresale.connect(alice).contribute(merkleProof!, {
         value: ethers.utils.parseEther('0.5'),
       })
 
-      await OpBombPresale.connect(bob).contribute({
+      await OpBombPresale.connect(bob).contribute(merkleProof!, {
         value: ethers.utils.parseEther('0.5'),
       })
       await expect(
-        OpBombPresale.connect(owner).contribute({
+        OpBombPresale.connect(owner).contribute(merkleProof!, {
           value: ethers.utils.parseEther('1'),
         }),
       ).to.be.reverted
 
-      const viewClaimableAmount = await OpBombPresale.connect(bob).viewClaimableAmount(
-        merkleProof,
-      )
+      const viewClaimableAmount = await OpBombPresale.connect(
+        bob,
+      ).viewClaimableAmount(merkleProof!)
       console.log('viewClaimableAmount', viewClaimableAmount)
+      console.log('owner', bob.address)
+
+      let whiteLister = await OpBombPresale.connect(owner).whiteLister(
+        merkleProof!,
+      )
+      console.log('whiteLister', whiteLister)
+
+      for (const [i, v] of tree.entries()) {
+        if (v[0] === "0x4Aa6Da4ca5d76e8d5e3ACD11B92Ab22D564F1fcb") {
+          merkleProof = tree.getProof(i)
+          console.log('Value:', v)
+          console.log('Proof:', merkleProof)
+        }
+      }
+
+      // whiteLister = await OpBombPresale.connect(bob).whiteLister(
+      //   merkleProof!,
+      // )
+      // console.log('whiteLister', whiteLister)
 
       await OpBombPresale.closePresale()
-      await expect(OpBombPresale.connect(bob).claim(merkleProof)).to.be.reverted
+      await expect(OpBombPresale.connect(bob).claim(merkleProof!)).to.be
+        .reverted
 
       // await OpBombPresale.addLiquidityOnOpBomb()
-      await OpBombPresale.setPresaleFinished()
+      await OpBombPresale.setPresaleLiquidityAdded()
 
-      await OpBombPresale.connect(alice).claim(merkleProof)
-      await OpBombPresale.connect(bob).claim(merkleProof)
+      await OpBombPresale.connect(alice).claim(merkleProof!)
+      await OpBombPresale.connect(bob).claim(merkleProof!)
 
       // const aliceBal = await BombToken.balanceOf(alice.address)
       // console.log('aliceBal', aliceBal)
