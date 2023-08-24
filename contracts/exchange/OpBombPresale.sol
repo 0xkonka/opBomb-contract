@@ -172,6 +172,7 @@ contract OpBombPresale is ReentrancyGuard, Ownable {
 
         funder.amount = funder.amount + msg.value;
         funder.status = FunderStatus.Invested;
+        totalSold += (msg.value * presaleConfig.price)  / 10 ** 18 ;
 
         emit Contribute(_msgSender(), msg.value);
     }

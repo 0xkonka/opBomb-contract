@@ -304,7 +304,7 @@ describe('test', function () {
         min_contribution: ethers.utils.parseEther('0.1'), // 1 ETH
         max_contribution: ethers.utils.parseEther('0.6'), // 5 ETH
         startTime: Math.floor(Date.now() / 1000), // ..
-        endTime: Math.floor(Date.now() / 1000) + 20 + 3 * 24 * 60 * 60, // ..
+        endTime: Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60, // ..
         // liquidity_lockup_time: 3 * 24 * 60 * 60, // ex: 1 mont
       }
 
