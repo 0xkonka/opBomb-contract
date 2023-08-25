@@ -315,9 +315,26 @@ describe('test', function () {
       console.log('Merkle Root:', tree.root)
       let merkleProof
 
+      merkleProof = [ // Mock merkleProof
+      '0x39f1d0f74e1b9c500276795ae3ba24d2ccf74a0fcccc199441bb8c5a0af3a33f',
+      '0x185e207b058bfe0e81ccb7ede04d62e6dcbea63fc39719199bcaf4366e1a3ad3',
+      '0x39bf0795620cd5b0362712849192207caea1a338bb086541bc666fdce5bb8f9f',
+      '0xbf00100e5baa01a583ffb5bbede4ea90635e29a1bde0474dfc0116aa74a85d24',
+      '0xab90c5479b80775b45e33d899feed0eaea40f9884a3b698a315313f22c17130f',
+      '0xaa971c3007a9a86d0fbc9d002aa2127a890be5ffd2bf15b63f4144618f472d17',
+      '0x233a519b5f8a9464ebc7a8ea76df54ec6ff44cc533d18fe2ccbf430fbc3836f3'
+    ]
+
+    for (const [i, v] of tree.entries()) {
+      if (v[0] === bob.address) {
+        merkleProof = tree.getProof(i)
+        console.log('Value:', v)
+        console.log('Proof:', merkleProof)
+      }
+    }
+
       await OpBombPresale.initialize(PresaleConfig, OpBombRouter.address)
       await OpBombPresale.setMerkleRoot(tree.root)
-
       // Contribute 1 ETH to Presale
       await OpBombPresale.connect(alice).contribute(merkleProof!, {
         value: ethers.utils.parseEther('0.5'),
@@ -326,6 +343,7 @@ describe('test', function () {
       await OpBombPresale.connect(bob).contribute(merkleProof!, {
         value: ethers.utils.parseEther('0.5'),
       })
+
       await expect(
         OpBombPresale.connect(owner).contribute(merkleProof!, {
           value: ethers.utils.parseEther('1'),
@@ -342,14 +360,6 @@ describe('test', function () {
         merkleProof!,
       )
       console.log('whiteLister', whiteLister)
-
-      for (const [i, v] of tree.entries()) {
-        if (v[0] === "0x4Aa6Da4ca5d76e8d5e3ACD11B92Ab22D564F1fcb") {
-          merkleProof = tree.getProof(i)
-          console.log('Value:', v)
-          console.log('Proof:', merkleProof)
-        }
-      }
 
       // whiteLister = await OpBombPresale.connect(bob).whiteLister(
       //   merkleProof!,
