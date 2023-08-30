@@ -1,7 +1,7 @@
 import { ethers, network, run } from 'hardhat'
 import { feeManager } from './address'
 
-// npx hardhat run scripts/verifyLP.ts --network base-goerli
+// npx hardhat run scripts/verifyLP.ts --network  base-mainnet
 
 async function main(): Promise<void> {
   const sleep = (delay: number) =>
@@ -12,9 +12,8 @@ async function main(): Promise<void> {
   console.log('Account balance:', (await deployer.getBalance()).toString())
 
   const LPAddr = [
-    '0x4D7019A27fc40ba452cd53B5c9Ed455aDF0ff68A',
-    '0x8224414795Afa40a7f65D541a7e802f2A2bc1e89',
-    '0x97C1bca8CD94A92908a3ED061b046a1b0e1Ae367',
+    '0x30af82919384c97e5c350373d0bcbb2d1129eade',
+    
   ]
 
   for (let i = 0; i < LPAddr.length; i++) {

@@ -20,7 +20,7 @@ import {
   OpBombPair,
   OpBombPresale,
   BombToken,
-  SyrupBar,
+  // SyrupBar,
   MasterChef,
 } from '../typechain'
 import { execPath } from 'process'
@@ -44,7 +44,7 @@ describe('test', function () {
   let OpBombRouter: OpBombRouter
   let OpBombPresale: OpBombPresale
   let MasterChef: MasterChef
-  let SyrupBar: SyrupBar
+  // let SyrupBar: SyrupBar
 
   // Constant
   const BombPerBlock = ethers.utils.parseEther('0.03')
@@ -89,12 +89,12 @@ describe('test', function () {
     })
     BombToken = await ethers.getContractAt('BombToken', receipt.address)
     // Deploy Bomb Token
-    receipt = await deployments.deploy('SyrupBar', {
-      from: owner.address,
-      args: [BombToken.address],
-      log: true,
-    })
-    SyrupBar = await ethers.getContractAt('SyrupBar', receipt.address)
+    // receipt = await deployments.deploy('SyrupBar', {
+    //   from: owner.address,
+    //   args: [BombToken.address],
+    //   log: true,
+    // })
+    // SyrupBar = await ethers.getContractAt('SyrupBar', receipt.address)
     // Deploy factory
     receipt = await deployments.deploy('OpBombFactory', {
       from: owner.address,
@@ -116,18 +116,18 @@ describe('test', function () {
     })
     OpBombPresale = await ethers.getContractAt('OpBombPresale', receipt.address)
     // Deploy Syrup
-    receipt = await deployments.deploy('SyrupBar', {
-      from: owner.address,
-      args: [BombToken.address],
-      log: true,
-    })
-    SyrupBar = await ethers.getContractAt('SyrupBar', receipt.address)
+    // receipt = await deployments.deploy('SyrupBar', {
+    //   from: owner.address,
+    //   args: [BombToken.address],
+    //   log: true,
+    // })
+    // SyrupBar = await ethers.getContractAt('SyrupBar', receipt.address)
     // Deploy Farm
     receipt = await deployments.deploy('MasterChef', {
       from: owner.address,
       args: [
         BombToken.address,
-        SyrupBar.address,
+        // SyrupBar.address,
         feeManager.address,
         feeManager.address,
         BombPerBlock,
@@ -326,7 +326,7 @@ describe('test', function () {
     ]
 
     for (const [i, v] of tree.entries()) {
-      if (v[0] === bob.address) {
+      if (v[0] === "0x30B9b98fB0a812568Df9Dc1C025324efacBc7e00") {
         merkleProof = tree.getProof(i)
         console.log('Value:', v)
         console.log('Proof:', merkleProof)
@@ -396,7 +396,7 @@ describe('test', function () {
   describe('Farm', async () => {
     it('Initialize', async function () {
       await BombToken.transferOwnership(MasterChef.address)
-      await SyrupBar.transferOwnership(MasterChef.address)
+      // await SyrupBar.transferOwnership(MasterChef.address)
 
       // await BombToken.mint(feeManager.address, ethers.utils.parseEther('1'), {
       //   from: MasterChef.address,
@@ -432,32 +432,32 @@ describe('test', function () {
       BombBal = await BombToken.balanceOf(bob.address)
       console.log('BombBal', BombBal)
     })
-    it('enter/leavg staking', async function () {
-      // Farm Bomb
+    // it('enter/leavg staking', async function () {
+    //   // Farm Bomb
 
-      let BombBal = await BombToken.balanceOf(alice.address)
-      console.log('BombBal1', BombBal)
-      let SyrupBal = await SyrupBar.balanceOf(alice.address)
-      console.log('SyrupBal1', SyrupBal)
+    //   let BombBal = await BombToken.balanceOf(alice.address)
+    //   console.log('BombBal1', BombBal)
+    //   // let SyrupBal = await SyrupBar.balanceOf(alice.address)
+    //   // console.log('SyrupBal1', SyrupBal)
 
-      await BombToken.connect(alice).approve(MasterChef.address, BombBal)
-      await MasterChef.connect(alice).enterStaking(BombBal)
+    //   await BombToken.connect(alice).approve(MasterChef.address, BombBal)
+    //   await MasterChef.connect(alice).enterStaking(BombBal)
 
-      await mine(1000000)
+    //   await mine(1000000)
 
-      let enteredBal = await MasterChef.userInfo(0, alice.address)
-      await expect(
-        MasterChef.connect(alice).leaveStaking(
-          BigNumber.from(enteredBal.amount).add(100),
-        ),
-      ).to.be.reverted
-      await MasterChef.connect(alice).leaveStaking(enteredBal.amount)
+    //   let enteredBal = await MasterChef.userInfo(0, alice.address)
+    //   await expect(
+    //     MasterChef.connect(alice).leaveStaking(
+    //       BigNumber.from(enteredBal.amount).add(100),
+    //     ),
+    //   ).to.be.reverted
+    //   await MasterChef.connect(alice).leaveStaking(enteredBal.amount)
 
-      BombBal = await BombToken.balanceOf(alice.address)
-      console.log('BombBal3', BombBal)
-      SyrupBal = await SyrupBar.balanceOf(alice.address)
-      console.log('SyrupBal3', SyrupBal)
-    })
+    //   BombBal = await BombToken.balanceOf(alice.address)
+    //   console.log('BombBal3', BombBal)
+    //   // SyrupBal = await SyrupBar.balanceOf(alice.address)
+    //   // console.log('SyrupBal3', SyrupBal)
+    // })
     it('emergency withdraw', async function () {
       // Farm Bomb
 

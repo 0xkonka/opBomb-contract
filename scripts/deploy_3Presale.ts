@@ -9,6 +9,8 @@ import {
 // npx hardhat run scripts/deploy_3Presale.ts --network base-goerli
 // npx hardhat run scripts/deploy_3Presale.ts --network avaxfuji
 
+// npx hardhat run scripts/deploy_3Presale.ts --network base-mainnet
+
 async function main(): Promise<void> {
   const sleep = (delay: number) =>
     new Promise((resolve) => setTimeout(resolve, delay * 1000))
@@ -23,7 +25,7 @@ async function main(): Promise<void> {
   // console.log('OpBombPresale_Deployed.address', OpBombPresale_Deployed.address)
 
   // await sleep(20)
-  // await verify("0x909E5508a8c8F679F97BCf0a48B4DC2C6FEDFAa4", [])
+  // await verify(OpBombPresale_Deployed, [])
 
   const OpBombPresaleContract = await ethers.getContractAt(
     'OpBombPresale',
@@ -35,37 +37,41 @@ async function main(): Promise<void> {
     price: ethers.utils.parseEther('333.333333'), //  0.015
     listing_price: ethers.utils.parseEther('266.666666'), // 0.01875
     liquidity_percent: 50, // 50%
-    hardcap: ethers.utils.parseEther('2'), // 100 ETH
-    softcap: ethers.utils.parseEther('1'), // 150 ETH
+    hardcap: ethers.utils.parseEther('30'), // 100 ETH
+    softcap: ethers.utils.parseEther('20'), // 150 ETH
     min_contribution: ethers.utils.parseEther('0.1'), // 1 ETH
     max_contribution: ethers.utils.parseEther('0.6'), // 5 ETH
-    white_startTime: 0,
-    white_endTime: Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60, // ..
-    startTime: 0, // ..
-    endTime: Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60, // ..
+    white_startTime: 1692964980 - 3000,
+    white_endTime: 1692964980 + 1.1 * 24 * 60 * 60, // ..
+    startTime: 1692964980 - 3000, // ..
+    endTime: 1692964980 + 3 * 24 * 60 * 60, // ..
     // liquidity_lockup_time: 3 * 24 * 60 * 60, // ex: 1 mont
   }
 
   const merkleRoot =
-    '0x981efbef227776be75419b50cb6b9390419f792c9cc6621062535d8e118f0aca'
+    '0x3219d89ff6af2065b729ca84cb2555b1be68dc5bff668e9236a2cd47b9d6fd30'
   const merkleProof = [
-    '0xd941ab7ee7e892ce524a156fcd7589ef13d6905a9b62d033810d6357e583f5fc',
-    '0x5c945087e19664fcfd41fcc1ac0774dbbe5e74667bae8190b92b57829e1abd5f',
-    '0xc1b3df38ca46ccc2936865597c18e70484a098c47120779ca543c9a9b69ef67c',
-    '0x43767b94aebdb609b9ba0c4dc2aa7a46c150ccfe125b7d39ff0c292442517e4f',
-    '0xbb0f0e3d3411f7bea0a4feea98031c4d2086bfe205ba7610650f356173438dfd',
-    '0x147446422117e2d7fcdb8f2e20c5d6fe55fc4486bc481a24749c5374a2e8572e',
-    '0x899fcc83e4d8c964735cb0ba346c34aae755312beb2c478d2d7f0f692ea2c6ee',
+    '0x3d2714478942511cb61b6286f89c852553a45dccc39eb0f829677e525cb8bd6c',
+    '0x8cf582160d25ea7bd25b0a438aa359cfcf796eb118ed763218f8bf041baf85d4',
+    '0x257ee6ade342772c2f8c8aa966d80b2b7aa16fa8dee055fa7aa5ae0fe26691cf',
+    '0x3f9ced07ab44017b8dd7b758999d4356f0088f31f23c98a47526ebb6726327c8',
+    '0x082c9abcd399cf42d631505ebe163196e65a0da51ffe912eca980fb0a7dcd5d7',
+    '0x2e0c1df71ede1905e51529e5dcb1dd59bf95a4beb7b6d822bf0ec1cd409265ec',
+    '0x0515610a72fdb9cd90573bf4d4ae0a950021c5673d5ad53e9d75ec87cdf3c83d'
   ]
 
   try {
-    // await OpBombPresaleContract.initialize(PresaleConfig, OpBombRouter_Deployed)
+    await OpBombPresaleContract.initialize(PresaleConfig, OpBombRouter_Deployed)
+
+    // await OpBombPresaleContract.closePresale()
+
+    // await OpBombPresaleContract.addLiquidityOnOpBomb()
+
+    // await OpBombPresaleContract.adminWithdraw("0x4200000000000000000000000000000000000006", "0x30B9b98fB0a812568Df9Dc1C025324efacBc7e00", ethers.utils.parseEther("10"));
 
     // await OpBombPresaleContract.setMerkleRoot(merkleRoot)
 
-    await OpBombPresaleContract.contribute(merkleProof, {
-      value: ethers.utils.parseEther('0.1'),
-    })
+
   } catch (err) {
     console.log('err', err)
   }

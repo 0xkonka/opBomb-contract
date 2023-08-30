@@ -2,9 +2,14 @@ import { ethers, network, run } from 'hardhat'
 import {
   WETH_Deployed,
   feeManager,
+  OpBombFactory_Deployed,
+  OpBombRouter_Deployed
 } from './address'
 
 // npx hardhat run scripts/deploy_2Dex.ts --network base-goerli
+
+// npx hardhat run scripts/deploy_2Dex.ts --network base-mainnet
+
 
 async function main(): Promise<void> {
   const sleep = (delay: number) =>
@@ -14,23 +19,23 @@ async function main(): Promise<void> {
   if (deployer === undefined) throw new Error('Deployer is undefined.')
   console.log('Account balance:', (await deployer.getBalance()).toString())
 
-  // Deploy Factory
-  const OpBombFactory = await ethers.getContractFactory('OpBombFactory')
-  const OpBombFactory_Deployed = await OpBombFactory.deploy(feeManager)
-  console.log('OpBombFactory_Deployed.address', OpBombFactory_Deployed.address)
+  // // Deploy Factory
+  // const OpBombFactory = await ethers.getContractFactory('OpBombFactory')
+  // const OpBombFactory_Deployed = await OpBombFactory.deploy(feeManager)
+  // console.log('OpBombFactory_Deployed.address', OpBombFactory_Deployed.address)
   
-  // Deploy Router
-  const OpBombRouter = await ethers.getContractFactory('OpBombRouter')
-  const OpBombRouter_Deployed = await OpBombRouter.deploy(
-    OpBombFactory_Deployed.address,
-    WETH_Deployed,
-  )
-  console.log('OpBombRouter_Deployed.address', OpBombRouter_Deployed.address)
+  // // Deploy Router
+  // const OpBombRouter = await ethers.getContractFactory('OpBombRouter')
+  // const OpBombRouter_Deployed = await OpBombRouter.deploy(
+  //   OpBombFactory_Deployed.address,
+  //   WETH_Deployed,
+  // )
+  // console.log('OpBombRouter_Deployed.address', OpBombRouter_Deployed.address)
 
-  await sleep(10)
+  // await sleep(10)
 
-  await verify(OpBombFactory_Deployed.address, [feeManager])
-  await verify(OpBombRouter_Deployed.address, [OpBombFactory_Deployed, WETH_Deployed])
+  await verify(OpBombFactory_Deployed, [feeManager])
+  await verify(OpBombRouter_Deployed, [OpBombFactory_Deployed, WETH_Deployed])
 }
 
 const verify = async (contractAddress: string, args: any[]) => {

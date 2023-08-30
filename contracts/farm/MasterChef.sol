@@ -7,9 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./BombToken.sol";
-import "./SyrupBar.sol";
-
-import "hardhat/console.sol";
 
 // MasterChef is the master of Bomb. He can make Bomb and he is a fair guy.
 //
@@ -50,8 +47,6 @@ contract MasterChef is Ownable {
 
     // The Bomb TOKEN!
     BombToken public Bomb;
-    // The SYRUP TOKEN!
-    SyrupBar public syrup;
     // Dev address.
     address public devaddr;
     // Bomb tokens created per block.
@@ -81,14 +76,12 @@ contract MasterChef is Ownable {
 
     constructor(
         BombToken _bomb,
-        SyrupBar _syrup,
         address _devaddr,
         address _feeAddress,
         uint256 _bombPerBlock,
         uint256 _startBlock
     ) {
         Bomb = _bomb;
-        syrup = _syrup;
         devaddr = _devaddr;
         feeAddress = _feeAddress;
         BombPerBlock = _bombPerBlock;
@@ -99,7 +92,9 @@ contract MasterChef is Ownable {
             PoolInfo({
                 lpToken: _bomb,
                 allocPoint: 1000,
-                lastRewardBlock: startBlock,
+                lastRewardBlock: block.number > startBlock
+                    ? block.number
+                    : startBlock,
                 accBombPerShare: 0,
                 depositFeeBP: 500
             })
@@ -241,7 +236,7 @@ contract MasterChef is Ownable {
             .mul(pool.allocPoint)
             .div(totalAllocPoint);
         Bomb.mint(devaddr, BombReward.div(10));
-        Bomb.mint(address(syrup), BombReward);
+        Bomb.mint(address(this), BombReward);
         pool.accBombPerShare = pool.accBombPerShare.add(
             BombReward.mul(1e12).div(lpSupply)
         );
@@ -251,7 +246,7 @@ contract MasterChef is Ownable {
 
     // Deposit LP tokens to MasterChef for Bomb allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
-        require(_pid != 0, "deposit Bomb by staking");
+        // require(_pid != 0, "deposit Bomb by staking");
 
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -288,7 +283,7 @@ contract MasterChef is Ownable {
 
     // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) public {
-        require(_pid != 0, "withdraw Bomb by unstaking");
+        // require(_pid != 0, "withdraw Bomb by unstaking");
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
@@ -307,61 +302,56 @@ contract MasterChef is Ownable {
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
-    // Stake Bomb tokens to MasterChef
-    function enterStaking(uint256 _amount) public {
-        PoolInfo storage pool = poolInfo[0];
-        UserInfo storage user = userInfo[0][msg.sender];
-        updatePool(0);
-        if (user.amount > 0) {
-            uint256 pending = user
-                .amount
-                .mul(pool.accBombPerShare)
-                .div(1e12)
-                .sub(user.rewardDebt);
-            if (pending > 0) {
-                safeBombTransfer(msg.sender, pending);
-            }
-        }
-        if (_amount > 0) {
-            pool.lpToken.safeTransferFrom(
-                address(msg.sender),
-                address(this),
-                _amount
-            );
-            if (pool.depositFeeBP > 0) {
-                uint256 depositFee = _amount.mul(pool.depositFeeBP).div(10000);
-                syrup.mint(feeAddress, _amount);
-                user.amount = user.amount.add(_amount).sub(depositFee);
-            } else {
-                user.amount = user.amount.add(_amount);
-            }
-        }
-        user.rewardDebt = user.amount.mul(pool.accBombPerShare).div(1e12);
-        syrup.mint(msg.sender, _amount);
+    // // Stake Bomb tokens to MasterChef
+    // function enterStaking(uint256 _amount) public {
+    //     PoolInfo storage pool = poolInfo[0];
+    //     UserInfo storage user = userInfo[0][msg.sender];
+    //     updatePool(0);
+    //     if (user.amount > 0) {
+    //         uint256 pending = user
+    //             .amount
+    //             .mul(pool.accBombPerShare)
+    //             .div(1e12)
+    //             .sub(user.rewardDebt);
+    //         if (pending > 0) {
+    //             safeBombTransfer(msg.sender, pending);
+    //         }
+    //     }
+    //     if (_amount > 0) {
+    //         pool.lpToken.safeTransferFrom(
+    //             address(msg.sender),
+    //             address(this),
+    //             _amount
+    //         );
+    //             user.amount = user.amount.add(_amount);
 
-        emit Deposit(msg.sender, 0, _amount);
-    }
+    //     }
+    //     user.rewardDebt = user.amount.mul(pool.accBombPerShare).div(1e12);
+    //     // syrup.mint(msg.sender, _amount);
 
-    // Withdraw Bomb tokens from STAKING.
-    function leaveStaking(uint256 _amount) public {
-        PoolInfo storage pool = poolInfo[0];
-        UserInfo storage user = userInfo[0][msg.sender];
-        require(user.amount >= _amount, "withdraw: not good");
-        updatePool(0);
-        uint256 pending = user.amount.mul(pool.accBombPerShare).div(1e12).sub(
-            user.rewardDebt
-        );
-        if (pending > 0) {
-            safeBombTransfer(msg.sender, pending);
-        }
-        if (_amount > 0) {
-            user.amount = user.amount.sub(_amount);
-            pool.lpToken.safeTransfer(address(msg.sender), _amount);
-        }
-        user.rewardDebt = user.amount.mul(pool.accBombPerShare).div(1e12);
-        syrup.burn(msg.sender, _amount);
-        emit Withdraw(msg.sender, 0, _amount);
-    }
+    //     emit Deposit(msg.sender, 0, _amount);
+    // }
+
+    // // Withdraw Bomb tokens from STAKING.
+    // function leaveStaking(uint256 _amount) public {
+    //     PoolInfo storage pool = poolInfo[0];
+    //     UserInfo storage user = userInfo[0][msg.sender];
+    //     require(user.amount >= _amount, "withdraw: not good");
+    //     updatePool(0);
+    //     uint256 pending = user.amount.mul(pool.accBombPerShare).div(1e12).sub(
+    //         user.rewardDebt
+    //     );
+    //     if (pending > 0) {
+    //         safeBombTransfer(msg.sender, pending);
+    //     }
+    //     if (_amount > 0) {
+    //         user.amount = user.amount.sub(_amount);
+    //         pool.lpToken.safeTransfer(address(msg.sender), _amount);
+    //     }
+    //     user.rewardDebt = user.amount.mul(pool.accBombPerShare).div(1e12);
+    //     // syrup.burn(msg.sender, _amount);
+    //     emit Withdraw(msg.sender, 0, _amount);
+    // }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
     function emergencyWithdraw(uint256 _pid) public {
@@ -375,7 +365,12 @@ contract MasterChef is Ownable {
 
     // Safe Bomb transfer function, just in case if rounding error causes pool to not have enough Bombs.
     function safeBombTransfer(address _to, uint256 _amount) internal {
-        syrup.safeBombTransfer(_to, _amount);
+        uint256 BombBal = Bomb.balanceOf(address(this));
+        if (_amount > BombBal) {
+            Bomb.transfer(_to, BombBal);
+        } else {
+            Bomb.transfer(_to, _amount);
+        }
     }
 
     // Update dev address by the previous dev.

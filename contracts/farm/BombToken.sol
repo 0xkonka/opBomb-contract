@@ -215,4 +215,10 @@ contract BombToken is ERC20("Bomb Token", "Bomb"), Ownable {
         }
         return chainId;
     }
+
+    function _transfer (address sender, address recipient, uint256 amount) internal override {
+        _moveDelegates(_delegates[sender], _delegates[recipient], amount);
+        super._transfer(sender, recipient, amount);
+    }
+
 }

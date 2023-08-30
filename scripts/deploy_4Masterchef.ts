@@ -1,12 +1,12 @@
 import { ethers, network, run } from 'hardhat'
 import {
   BombToken_Deployed,
-  SyrupBar_Deployed,
+  // SyrupBar_Deployed,
   feeManager,
   MasterChef_Deployed,
 } from './address'
 
-// npx hardhat run scripts/deploy_4Masterchef.ts --network base-goerli
+// npx hardhat run scripts/deploy_4Masterchef.ts --network base-mainnet
 
 async function main(): Promise<void> {
   const sleep = (delay: number) =>
@@ -16,40 +16,38 @@ async function main(): Promise<void> {
   if (deployer === undefined) throw new Error('Deployer is undefined.')
   console.log('Account balance:', (await deployer.getBalance()).toString())
 
-  // const BombPerBlock = ethers.utils.parseEther('0.03')
-  // const startBlock = Math.floor(Date.now() / 1000)
+  const BombPerBlock = ethers.utils.parseEther('0.03')
+  const startBlock = 3101029
 
-  // const MasterChef = await ethers.getContractFactory('MasterChef')
-  // const MasterChef_Deployed = await MasterChef.deploy(
-  //   BombToken_Deployed,
-  //   SyrupBar_Deployed,
-  //   feeManager,
-  //   feeManager,
-  //   BombPerBlock,
-  //   startBlock,
-  // )
-  // console.log('MasterChef.address', MasterChef_Deployed.address)
+  const MasterChef = await ethers.getContractFactory('MasterChef')
+  const MasterChef_Deployed = await MasterChef.deploy(
+    BombToken_Deployed,
+    feeManager,
+    feeManager,
+    BombPerBlock,
+    startBlock,
+  )
+  console.log('MasterChef.address', MasterChef_Deployed.address)
 
   // await sleep(10)
 
-  // await verify(MasterChef_Deployed.address, [
-  //   BombToken_Deployed,
-  //   SyrupBar_Deployed,
-  //   feeManager,
-  //   feeManager,
-  //   BombPerBlock,
-  //   startBlock,
-  // ])
+  await verify(MasterChef_Deployed.address, [
+    BombToken_Deployed,
+    feeManager,
+    feeManager,
+    BombPerBlock,
+    startBlock,
+  ])
 
-  const MasterChef = await ethers.getContractAt(
-    'MasterChef',
-    MasterChef_Deployed,
-  )
-  try {
-    await MasterChef.enterStaking(ethers.utils.parseEther('100'))
-  } catch (err) {
-    console.log('err', err)
-  }
+  // const MasterChef = await ethers.getContractAt(
+  //   'MasterChef',
+  //   MasterChef_Deployed,
+  // )
+  // try {
+  //   await MasterChef.enterStaking(ethers.utils.parseEther('100'))
+  // } catch (err) {
+  //   console.log('err', err)
+  // }
 }
 
 const verify = async (contractAddress: string, args: any[]) => {
