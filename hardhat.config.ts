@@ -103,7 +103,25 @@ const config: HardhatUserConfig = {
     // },
     compilers: [
       {
+        version: '0.8.11',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 99999,
+          },
+        },
+      },
+      {
         version: '0.8.4',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 99999,
+          },
+        },
+      },
+      {
+        version: '0.8.0',
         settings: {
           optimizer: {
             enabled: true,
@@ -122,6 +140,15 @@ const config: HardhatUserConfig = {
       },
       {
         version: '0.6.6',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 99999,
+          },
+        },
+      },
+      {
+        version: '0.6.0',
         settings: {
           optimizer: {
             enabled: true,
